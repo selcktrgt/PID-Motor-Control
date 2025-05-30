@@ -1,0 +1,1 @@
+The STM32-based project was designed to stabilize the system using a DC motor controlled by a PID algorithm. An MPU6050 sensor was used to obtain accelerometer and gyroscope data, which were processed to calculate the tilt angle. This angle was then used as input to the PID controller to maintain system stability smoothly and accurately.
