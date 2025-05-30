@@ -1,0 +1,6 @@
+../Core/Src/mpu6050.c:51:6:mpu6050_init	2
+../Core/Src/mpu6050.c:80:6:gyro_signals	1
+../Core/Src/mpu6050.c:107:6:accel_signals	1
+../Core/Src/mpu6050.c:132:6:calibrate_gyro	2
+../Core/Src/mpu6050.c:155:6:kalman_1d	1
+../Core/Src/mpu6050.c:167:6:Get_Angle	1
