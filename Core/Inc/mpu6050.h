@@ -8,7 +8,7 @@
 #ifndef INC_MPU6050_H_
 #define INC_MPU6050_H_
 
-#define MPU6050_ADDR  0xD0
+
 
 #define SMPLRT_DIV_REG  0x19
 #define GYRO_CONFIG_REG 0x1B

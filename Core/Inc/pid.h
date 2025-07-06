@@ -12,6 +12,6 @@
 #endif /* INC_PID_H_ */
 
 
-double get_control_signal(float angle_roll, double error_roll,double dt);
+double get_control_signal(float angle_roll);
 
 

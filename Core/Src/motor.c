@@ -23,8 +23,8 @@ double calculate_motor_powers(float angle_roll, double dt){
 
 roll_error=target_angle-angle_roll;
 
-roll_control_sig=get_control_signal(angle_roll,roll_error,dt);
 
-return roll_control_sig;
+
+return 0;
 
 }

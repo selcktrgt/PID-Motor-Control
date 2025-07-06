@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <math.h>
 extern I2C_HandleTypeDef hi2c1;
-
+extern I2C_HandleTypeDef hi2c2;
 
 
 int16_t Accel_X_RAW;
@@ -40,40 +40,54 @@ float KalmanUncertaintyAnglePitch = 2*2;
 
 float Kalman1DOutput[] = {0,0};
 
+int MPU6050_ADDR= 0xD0;
 
 float RateRoll, RatePitch, RateYaw;
 float AngleRoll, AnglePitch;
 float RateCalibrationNumber;
 float RateCalibrationRoll, RateCalibrationPitch, RateCalibrationYaw;
-
+uint8_t ic2_ok=0;
 extern double dt;
+extern double dt1;
+extern double last_time;
 uint32_t time1;
 void mpu6050_init()
 {
+  HAL_Delay(200);
+  HAL_I2C_DeInit(&hi2c1);
+  HAL_Delay(50);
+  HAL_I2C_Init(&hi2c1);
+  if (HAL_I2C_IsDeviceReady(&hi2c2, 0x68, 3, 100) == HAL_OK)
+  {
+      ic2_ok=1;
+  }
 
-  HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, WHO_AM_I_REG, 1, &check, 1, 1000);
 
-  if(check==104){
+
+
 
       //wake up
-      uint8_t data=0;
-      HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, PWR_MGMT_1_REG, 1, &data, 1, 1000);
+  uint8_t data=0;
+  HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, PWR_MGMT_1_REG, 1, &data, 1, 1000);
 
-      //smpl_rate 1KHZ
-      data=0x07;
-      HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &data, 1, 1000);
+
+  HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, WHO_AM_I_REG, 1, &check, 1, 1000);
+
+   //smpl_rate 1KHZ
+  data=0x07;
+  HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &data, 1, 1000);
 
       //accel config FSEL=0 =>2G
-      data=0x00;
-      HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, ACCEL_CONFIG_REG, 1, &data, 1, 1000);
-
+  data=0x00;
+  HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, ACCEL_CONFIG_REG, 1, &data, 1, 1000);
       //gyro config FSEL=0 =>250
-      data=0x00;
-      HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, GYRO_CONFIG_REG, 1, &data, 1, 1000);
+  data=0x00;
+  HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, GYRO_CONFIG_REG, 1, &data, 1, 1000);
 
 
 
-  }
+
+
 
 }
 
@@ -81,14 +95,15 @@ void gyro_signals()
 {
   //DLPF CONFIG for vibrations
   //10HZ
+     dt1 = HAL_GetTick();
      time1=HAL_GetTick();
      uint8_t data= 0x05;
-     HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, 0x1A, 1, &data, 1, 1000);
+     HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, 0x1A, 1, &data, 1, 1000);
 
   //read GYRO
 
      uint8_t Rec_Data1[6];
-     HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, Rec_Data1, 6, 1000);
+     HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, Rec_Data1, 6, 1000);
      Gyro_X_RAW=(int16_t)(Rec_Data1[0] << 8 | Rec_Data1[1]);
      Gyro_Y_RAW=(int16_t)(Rec_Data1[2] << 8 | Rec_Data1[3]);
      Gyro_Z_RAW=(int16_t)(Rec_Data1[4] << 8 | Rec_Data1[5]);
@@ -111,7 +126,7 @@ void accel_signals()
 
       //read 6 bytes starting from accel_xout_h register
 
-      HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, ACCEL_X_OUT_H_REG, 1, Rec_Data, 6, 1000);
+      HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, ACCEL_X_OUT_H_REG, 1, Rec_Data, 6, 1000);
 
 
       Accel_X_RAW=(int16_t)(Rec_Data[0] << 8 | Rec_Data[1]);
@@ -126,6 +141,8 @@ void accel_signals()
       AnglePitch = atan(Ax/sqrt(Ay*Ay + Az*Az))*1/(3.142/180);
 
       dt=HAL_GetTickFreq()-time1;
+
+      last_time=dt1;
 
 }
 
@@ -162,6 +179,7 @@ void kalman_1d(float KalmanState, float KalmanUncertainty, float KalmanInput, fl
 
     Kalman1DOutput[0] = KalmanState;
     Kalman1DOutput[1] = KalmanUncertainty;
+
 }
 
 void Get_Angle()
@@ -172,5 +190,7 @@ void Get_Angle()
     KalmanAngleRoll=Kalman1DOutput[0];
     kalman_1d(KalmanAnglePitch, KalmanUncertaintyAnglePitch, RatePitch, AnglePitch);
     KalmanAnglePitch=Kalman1DOutput[0]; //2 derece sapma var
+
+    dt=HAL_GetTick()-last_time;
 
 }
